@@ -11,5 +11,3 @@ fio --name=swap-latency \
     --time_based=1 \
     --runtime=10 \
     --group_reporting
-
-rm fio.test
