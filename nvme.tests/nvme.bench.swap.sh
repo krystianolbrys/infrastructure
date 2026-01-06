@@ -2,6 +2,7 @@
 
 fio --name=swap-latency \
     --filename=fio.test \
+    --size=2G \
     --ioengine=libaio \
     --direct=1 \
     --rw=randread \
