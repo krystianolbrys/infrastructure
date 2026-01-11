@@ -46,7 +46,27 @@ add_fstab_entry_if_missing() {
     fi
 }
 
+prepare_nocow_directories() {
+    local dirs=(
+        "/var/lib/machines"
+        "/var/lib/portables"
+    )
+
+    for dir in "${dirs[@]}"; do
+        if [[ -e "$dir" ]]; then
+            rm -rf "$dir"
+            echo "Removed existing $dir"
+        fi
+
+        mkdir -p "$dir"
+        chattr +C "$dir"
+        echo "Prepared nocow directory $dir"
+    done
+}
+
 main() {
+    prepare_nocow_directories
+    
     mount_root_subvol
 
     create_subvolume_if_missing "$SUBVOL_DATA_NAME"
