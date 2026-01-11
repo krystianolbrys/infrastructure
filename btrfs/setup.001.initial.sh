@@ -23,7 +23,7 @@ apt update
 apt install -y sudo htop lm-sensors stress-ng
 
 # 3. Add user to sudo group
-usermod -aG sudo "$USERNAME"
+/usr/sbin/usermod -aG sudo "$USERNAME"
 
 echo "OK:"
 echo "- /usr/sbin added to PATH"
