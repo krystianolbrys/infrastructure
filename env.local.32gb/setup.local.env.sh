@@ -41,10 +41,11 @@ trap cleanup EXIT
 
 print_env() {
     echo "=== Environment ==="
-    echo "Invoking user : $TARGET_USER"
-    echo "User home     : $TARGET_HOME"
-    echo "User bin path : $USER_BIN_PATH"
-    echo "Download path : $DOWNLOAD_PATH"
+    echo "Invoking user     : $TARGET_USER"
+    echo "User home         : $TARGET_HOME"
+    echo "User bin path     : $USER_BIN_PATH"
+    echo "Download path     : $DOWNLOAD_PATH"
+    echo "DEBIAN_FRONTEND   : $DEBIAN_FRONTEND"
     echo "==================="
 }
 
@@ -130,12 +131,17 @@ add_user_to_libvirt_group() {
     usermod -aG libvirt "$TARGET_USER"
 }
 
+setEnvs(){
+    export DEBIAN_FRONTEND=noninteractive
+}
+
 # =====================
 # MAIN
 # =====================
 
 main() {
     require_root
+    setEnvs
     print_env
 
     mkdir -p "$DOWNLOAD_PATH"
