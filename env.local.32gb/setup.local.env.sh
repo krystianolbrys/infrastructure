@@ -11,6 +11,14 @@ TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 USER_BIN_PATH="$TARGET_HOME/.local/bin"
 
+add_USER_BIN_PATH_to_bashrc() {
+    local bashrc="$TARGET_HOME/.bashrc"
+
+    if ! grep -q "$USER_BIN_PATH" "$bashrc" 2>/dev/null; then
+        echo "export PATH=\"\$PATH:$USER_BIN_PATH\"" >> "$bashrc"
+    fi
+}
+
 download_lazygit() {
     local version
 
@@ -59,6 +67,7 @@ main() {
 
     download_lazygit
     extract_lazygit
+    add_USER_BIN_PATH_to_bashrc
 
     curl -L \
         'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb' \
