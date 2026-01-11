@@ -1,23 +1,68 @@
 #!/bin/bash
 set -euo pipefail
 
+# =====================
+# CONFIG
+# =====================
+
 DOWNLOAD_PATH="downloads.d"
 
 CHROME_DEB="$DOWNLOAD_PATH/chrome.deb"
 VSCODE_DEB="$DOWNLOAD_PATH/vscode.deb"
 
-# Target user (works with and without sudo)
 TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 USER_BIN_PATH="$TARGET_HOME/.local/bin"
+
+# =====================
+# GUARDS
+# =====================
+
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "ERROR: Run this script as root"
+        exit 1
+    fi
+}
+
+# =====================
+# CLEANUP
+# =====================
+
+cleanup() {
+    rm -rf "$DOWNLOAD_PATH"
+}
+
+trap cleanup EXIT
+
+# =====================
+# ENV
+# =====================
+
+print_env() {
+    echo "=== Environment ==="
+    echo "Invoking user : $TARGET_USER"
+    echo "User home     : $TARGET_HOME"
+    echo "User bin path : $USER_BIN_PATH"
+    echo "Download path : $DOWNLOAD_PATH"
+    echo "==================="
+}
 
 add_USER_BIN_PATH_to_bashrc() {
     local bashrc="$TARGET_HOME/.bashrc"
 
     if ! grep -q "$USER_BIN_PATH" "$bashrc" 2>/dev/null; then
-        echo "export PATH=\"\$PATH:$USER_BIN_PATH\"" >> "$bashrc"
+        {
+            echo ""
+            echo "# User local binaries"
+            echo "export PATH=\"\$PATH:$USER_BIN_PATH\""
+        } >> "$bashrc"
     fi
 }
+
+# =====================
+# LAZYGIT
+# =====================
 
 download_lazygit() {
     local version
@@ -42,43 +87,78 @@ extract_lazygit() {
     chown "$TARGET_USER:$TARGET_USER" "$USER_BIN_PATH/lazygit"
 }
 
-install_debs() {
-    sudo apt install -y \
-        "./$CHROME_DEB" \
-        "./$VSCODE_DEB"
+# =====================
+# CHROME
+# =====================
+
+download_chrome() {
+    curl -L \
+        'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb' \
+        -o "$CHROME_DEB"
 }
 
-cleanup() {
-    rm -rf "$DOWNLOAD_PATH"
+install_chrome() {
+    apt install -y "./$CHROME_DEB"
 }
+
+# =====================
+# VSCODE
+# =====================
+
+download_vscode() {
+    curl -L \
+        'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64' \
+        -o "$VSCODE_DEB"
+}
+
+install_vscode() {
+    apt install -y "./$VSCODE_DEB"
+}
+
+# =====================
+# VIRTUALIZATION
+# =====================
+
+install_virtualization() {
+    apt install -y \
+        qemu-system \
+        libvirt-daemon-system \
+        virt-manager
+}
+
+add_user_to_libvirt_group() {
+    usermod -aG libvirt "$TARGET_USER"
+}
+
+# =====================
+# MAIN
+# =====================
 
 main() {
-    echo "=== Environment ==="
-    echo "Invoking user : $TARGET_USER"
-    echo "User home     : $TARGET_HOME"
-    echo "User bin path : $USER_BIN_PATH"
-    echo "Download path : $DOWNLOAD_PATH"
-    echo "==================="
+    require_root
+    print_env
 
     mkdir -p "$DOWNLOAD_PATH"
 
-    sudo apt update
-    sudo apt install -y curl
+    apt update
+    apt install -y curl
 
     download_lazygit
     extract_lazygit
     add_USER_BIN_PATH_to_bashrc
 
-    curl -L \
-        'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb' \
-        -o "$CHROME_DEB"
+    download_chrome
+    install_chrome
 
-    curl -L \
-        'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64' \
-        -o "$VSCODE_DEB"
+    download_vscode
+    install_vscode
 
-    install_debs
-    cleanup
+    # virtualization
+    install_virtualization
+    add_user_to_libvirt_group
+
+    echo "Done."
+    echo "NOTE: Re-login required for libvirt group to take effect."
 }
 
 main "$@"
