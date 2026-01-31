@@ -11,7 +11,7 @@ fi
 DEVICE="$1"
 
 if [ -z "$DEVICE" ]; then
-  echo "Usage: $0 as block device
+  echo "Usage: $0 as block device"
   exit 1
 fi
 
