@@ -27,4 +27,17 @@ if [ ! -b "$DEV2" ]; then
   exit 1
 fi
 
-zpool create "$POOL_NAME" mirror "$DEV1" "$DEV2"
+zpool create \
+  -o ashift=12 \
+  -o autotrim=on \
+  -o autoreplace=on \
+  -O compression=zstd \
+  -O atime=off \
+  -O checksum=sha256 \
+  -O xattr=sa \
+  -O acltype=posixacl \
+  -O normalization=formD \
+  -O sync=standard \
+  "$POOL_NAME" \
+  mirror \
+  "$DEV1" "$DEV2"
